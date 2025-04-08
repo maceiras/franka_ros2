@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include <hardware_interface/visibility_control.h>
 #include <franka_hardware/robot.hpp>
 
 #include <hardware_interface/hardware_info.hpp>
@@ -67,6 +66,10 @@ class FrankaHardwareInterface : public hardware_interface::SystemInterface {
 
   bool effort_interface_claimed_ = false;
   bool effort_interface_running_ = false;
+
+  bool velocity_joint_interface_claimed_ = false;
+  bool velocity_joint_interface_running_ = false;
+
   static rclcpp::Logger getLogger();
 
   const std::string k_robot_name{"panda"};
