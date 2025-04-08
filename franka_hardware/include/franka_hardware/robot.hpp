@@ -52,6 +52,7 @@ class Robot {
    * control or reading loop is currently active.
    */
   virtual void initializeTorqueControl();
+  virtual void initializeVelocityControl();
 
   /**
    * Starts a reading loop of the robot state. Before using this method make sure that no other

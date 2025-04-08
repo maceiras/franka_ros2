@@ -43,6 +43,7 @@ joint_trajectory_controller:
       - panda_joint7
     command_interfaces:
       - effort
+      - velocity
     state_interfaces:
       - position
       - velocity
