@@ -18,11 +18,12 @@
 #include <mutex>
 
 #include <franka/control_tools.h>
-#include <rclcpp/logging.hpp>
+#include <franka/exception.h>
 
 namespace franka_hardware {
 
-Robot::Robot(const std::string& robot_ip, const rclcpp::Logger& logger) {
+Robot::Robot(const std::string& robot_ip, const rclcpp::Logger& logger){
+  logger_ = std::make_shared<rclcpp::Logger>(logger);
   tau_command_.fill(0.);
   franka::RealtimeConfig rt_config = franka::RealtimeConfig::kEnforce;
   if (!franka::hasRealtimeKernel()) {
@@ -59,22 +60,30 @@ void Robot::stopRobot() {
   }
 }
 
+void Robot::automaticErrorRecovery(){
+  robot_->automaticErrorRecovery();
+}
+
 void Robot::initializeTorqueControl() {
   assert(isStopped());
   stopped_ = false;
   const auto kTorqueControl = [this]() {
-    robot_->control(
-        [this](const franka::RobotState& state, const franka::Duration& /*period*/) {
-          {
-            std::lock_guard<std::mutex> lock(read_mutex_);
-            current_state_ = state;
-          }
-          std::lock_guard<std::mutex> lock(write_mutex_);
-          franka::Torques out(tau_command_);
-          out.motion_finished = finish_;
-          return out;
-        },
-        true, franka::kMaxCutoffFrequency);
+    try{
+      robot_->control(
+          [this](const franka::RobotState& state, const franka::Duration& /*period*/) {
+            {
+              std::lock_guard<std::mutex> lock(read_mutex_);
+              current_state_ = state;
+            }
+            std::lock_guard<std::mutex> lock(write_mutex_);
+            franka::Torques out(tau_command_);
+            out.motion_finished = finish_;
+            return out;
+          },
+          true, franka::kMaxCutoffFrequency);
+    } catch (const franka::ControlException& e) {
+      RCLCPP_ERROR(*logger_,"Error: %s",e.what());
+    }
   };
   control_thread_ = std::make_unique<std::thread>(kTorqueControl);
 }
@@ -83,6 +92,7 @@ void Robot::initializeVelocityControl() {
   assert(isStopped());
   stopped_ = false;
   const auto kTorqueControl = [this]() {
+    try{
     robot_->control(
         [this](const franka::RobotState& state, const franka::Duration& /*period*/) {
           {
@@ -94,6 +104,9 @@ void Robot::initializeVelocityControl() {
           out.motion_finished = finish_;
           return out;
         });
+    } catch (const franka::ControlException& e) {
+      RCLCPP_ERROR(*logger_,"Error: %s",e.what());
+    }
   };
   control_thread_ = std::make_unique<std::thread>(kTorqueControl);
 }

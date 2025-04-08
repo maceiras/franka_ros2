@@ -22,6 +22,8 @@
 #include <string>
 #include <thread>
 
+#include <rclcpp/logging.hpp>
+
 #include <franka/model.h>
 #include <franka/robot.h>
 #include <franka_hardware/model.hpp>
@@ -46,6 +48,8 @@ class Robot {
 
   /// Stops the currently running loop and closes the connection with the robot.
   virtual ~Robot();
+
+  virtual void automaticErrorRecovery();
 
   /**
    * Starts a torque control loop. Before using this method make sure that no other
@@ -87,8 +91,10 @@ class Robot {
 
  protected:
   Robot() = default;
+  std::shared_ptr<rclcpp::Logger> logger_;
 
  private:
+
   std::unique_ptr<std::thread> control_thread_;
   std::unique_ptr<franka::Robot> robot_;
   std::unique_ptr<franka::Model> model_;

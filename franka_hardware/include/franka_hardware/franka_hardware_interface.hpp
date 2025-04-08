@@ -28,23 +28,31 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/state.hpp>
 
+#include "franka_hardware/franka_action_server.hpp"
+#include "franka_hardware/franka_executor.hpp"
+
+
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 namespace franka_hardware {
 
 class FrankaHardwareInterface : public hardware_interface::SystemInterface {
  public:
-  explicit FrankaHardwareInterface(std::unique_ptr<Robot> robot);
+  explicit FrankaHardwareInterface(std::shared_ptr<Robot> robot);
   FrankaHardwareInterface() = default;
 
   hardware_interface::return_type prepare_command_mode_switch(
       const std::vector<std::string>& start_interfaces,
       const std::vector<std::string>& stop_interfaces) override;
+
   hardware_interface::return_type perform_command_mode_switch(
       const std::vector<std::string>& start_interfaces,
       const std::vector<std::string>& stop_interfaces) override;
+
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
   hardware_interface::return_type read(const rclcpp::Time& time,
@@ -55,7 +63,10 @@ class FrankaHardwareInterface : public hardware_interface::SystemInterface {
   static const size_t kNumberOfJoints = 7;
 
  private:
-  std::unique_ptr<Robot> robot_;
+  std::shared_ptr<Robot> robot_;
+  std::shared_ptr<ActionServer> action_node_;
+  std::shared_ptr<FrankaExecutor> executor_;
+
   std::array<double, kNumberOfJoints> hw_commands_{0, 0, 0, 0, 0, 0, 0};
   std::array<double, kNumberOfJoints> hw_positions_{0, 0, 0, 0, 0, 0, 0};
   std::array<double, kNumberOfJoints> hw_velocities_{0, 0, 0, 0, 0, 0, 0};

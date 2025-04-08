@@ -32,7 +32,7 @@ namespace franka_hardware {
 using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
 
-FrankaHardwareInterface::FrankaHardwareInterface(std::unique_ptr<Robot> robot)
+FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot)
     : robot_{std::move(robot)} {}
 
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
@@ -174,6 +174,11 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
     }
     RCLCPP_INFO(getLogger(), "Successfully connected to robot");
   }
+
+  executor_ = std::make_shared<FrankaExecutor>();
+  action_node_ = std::make_shared<ActionServer>(rclcpp::NodeOptions(), robot_);
+  executor_->add_node(action_node_);
+
   return CallbackReturn::SUCCESS;
 }
 
