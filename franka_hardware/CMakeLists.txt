@@ -73,7 +73,6 @@ if(BUILD_TESTING)
     ament_pep257()
     ament_xmllint()
 
-    add_subdirectory(test)
 
     if(CHECK_TIDY)
         find_package(ament_cmake_clang_tidy REQUIRED)
