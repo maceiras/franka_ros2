@@ -38,7 +38,7 @@ namespace franka_hardware {
 
 class FrankaHardwareInterface : public hardware_interface::SystemInterface {
  public:
-  explicit FrankaHardwareInterface(std::shared_ptr<Robot> robot);
+  explicit FrankaHardwareInterface(std::shared_ptr<Robot> robot, const std::string& arm_id);
   FrankaHardwareInterface() = default;
 
   hardware_interface::return_type prepare_command_mode_switch(
@@ -83,7 +83,7 @@ class FrankaHardwareInterface : public hardware_interface::SystemInterface {
 
   static rclcpp::Logger getLogger();
 
-  const std::string k_robot_name{"panda"};
+  const std::string arm_id_{"panda"};
   const std::string k_robot_state_interface_name{"robot_state"};
   const std::string k_robot_model_interface_name{"robot_model"};
 };

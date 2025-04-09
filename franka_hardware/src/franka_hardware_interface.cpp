@@ -32,8 +32,8 @@ namespace franka_hardware {
 using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
 
-FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot)
-    : robot_{std::move(robot)} {}
+FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot, const std::string& arm_id)
+    : robot_{std::move(robot)}, arm_id_(arm_id) {}
 
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
   std::vector<StateInterface> state_interfaces;
@@ -47,11 +47,11 @@ std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
   }
 
   state_interfaces.emplace_back(StateInterface(
-      k_robot_name, k_robot_state_interface_name,
+      arm_id_, k_robot_state_interface_name,
       reinterpret_cast<double*>(  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           &hw_franka_robot_state_addr_)));
   state_interfaces.emplace_back(StateInterface(
-      k_robot_name, k_robot_model_interface_name,
+      arm_id_, k_robot_model_interface_name,
       reinterpret_cast<double*>(  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           &hw_franka_model_ptr_)));
   return state_interfaces;
