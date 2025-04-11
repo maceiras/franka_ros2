@@ -144,14 +144,15 @@ franka_msgs::msg::Errors errorsToMessage(const franka::Errors& error) {
 
 namespace franka_semantic_components {
 
-FrankaRobotState::FrankaRobotState(const std::string& name) : SemanticComponentInterface(name, 1) {
+FrankaRobotState::FrankaRobotState(const std::string& name, const std::string& robot_name) : SemanticComponentInterface(name, 1) {
   interface_names_.emplace_back(name_);
+  robot_name_ = robot_name;
   // TODO: Set default values to NaN
 }
 
 bool FrankaRobotState::get_values_as_message(franka_msgs::msg::FrankaRobotState& message) {
   const std::string full_interface_name = robot_name_ + "/" + state_interface_name_;
-
+  
   auto franka_state_interface =
       std::find_if(state_interfaces_.cbegin(), state_interfaces_.cend(),
                    [&full_interface_name](const auto& interface) {
@@ -163,7 +164,7 @@ bool FrankaRobotState::get_values_as_message(franka_msgs::msg::FrankaRobotState&
   } else {
     RCLCPP_ERROR(rclcpp::get_logger("franka_state_semantic_component"),
                  "Franka state interface does not exist! Did you assign the loaned state in the "
-                 "controller?");
+                 "controller? Interface: %s",full_interface_name);
     return false;
   }
 

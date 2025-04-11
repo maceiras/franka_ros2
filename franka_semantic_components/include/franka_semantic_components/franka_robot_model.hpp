@@ -33,7 +33,8 @@ class FrankaRobotModel
    * @param[in] name The name of robot model state interface.
    */
   FrankaRobotModel(const std::string& franka_model_interface_name,
-                   const std::string& franka_state_interface_name);
+                   const std::string& franka_state_interface_name,
+                   const std::string& arm_id);
   FrankaRobotModel() = delete;
 
   virtual ~FrankaRobotModel() = default;
@@ -201,7 +202,7 @@ class FrankaRobotModel
   franka::RobotState* robot_state;
 
  private:
-  const std::string arm_id_{"panda"};
+  std::string arm_id_{"panda"};
 
   const std::string robot_state_interface_name_{"robot_state"};
   const std::string robot_model_interface_name_{"robot_model"};

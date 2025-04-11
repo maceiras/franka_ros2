@@ -33,7 +33,8 @@ using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
 
 FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot, const std::string& arm_id)
-    : robot_{std::move(robot)}, arm_id_(arm_id) {}
+    : robot_{std::move(robot)}, arm_id_(arm_id) {
+    }
 
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
   std::vector<StateInterface> state_interfaces;
@@ -164,6 +165,18 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
       RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' is not set");
       return CallbackReturn::ERROR;
     }
+
+    try {
+      arm_id_ = info_.hardware_parameters.at("arm_id");
+    } catch (const std::out_of_range& ex) {
+      RCLCPP_WARN(getLogger(), "Parameter 'arm_id' is not set.");
+      RCLCPP_WARN(getLogger(),
+                  "Deprecation Warning: In the next release, 'arm_id' should be set in the URDF. "
+                  "Using 'panda' as default 'arm_id' will not be supported."
+                  "Please use the latest franka_description package from: "
+                  "https://github.com/frankaemika/franka_description");
+    }
+
     try {
       RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
       robot_ = std::make_unique<Robot>(robot_ip, getLogger());
@@ -176,7 +189,7 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
   }
 
   executor_ = std::make_shared<FrankaExecutor>();
-  action_node_ = std::make_shared<ActionServer>(rclcpp::NodeOptions(), robot_);
+  action_node_ = std::make_shared<ActionServer>(rclcpp::NodeOptions(),arm_id_, robot_);
   executor_->add_node(action_node_);
 
   return CallbackReturn::SUCCESS;
@@ -223,24 +236,51 @@ hardware_interface::return_type FrankaHardwareInterface::prepare_command_mode_sw
     return interface.find(hardware_interface::HW_IF_VELOCITY) != std::string::npos;
   };
 
-  if (std::count_if(stop_interfaces.begin(), stop_interfaces.end(), is_effort_interface) == kNumberOfJoints) {
+  std::vector<std::string> start_interfaces_ours = start_interfaces;
+  std::vector<std::string> stop_interfaces_ours = stop_interfaces;
+
+  // Remove any interface that does NOT contain the substring arm_id_.
+  start_interfaces_ours.erase(
+    std::remove_if(
+      start_interfaces_ours.begin(),
+      start_interfaces_ours.end(),
+        [this](const std::string& iface) {
+            // Return true if the substring is not found.
+            return iface.find(arm_id_) == std::string::npos;
+        }
+    ),
+    start_interfaces_ours.end()
+  );
+  stop_interfaces_ours.erase(
+    std::remove_if(
+      stop_interfaces_ours.begin(),
+      stop_interfaces_ours.end(),
+        [this](const std::string& iface) {
+            // Return true if the substring is not found.
+            return iface.find(arm_id_) == std::string::npos;
+        }
+    ),
+    stop_interfaces_ours.end()
+  );
+
+  if (std::count_if(stop_interfaces_ours.begin(), stop_interfaces_ours.end(), is_effort_interface) == kNumberOfJoints) {
     effort_interface_claimed_ = false;
-  }else if(std::count_if(stop_interfaces.begin(), stop_interfaces.end(), is_velocity_interface) == kNumberOfJoints){
+  }else if(std::count_if(stop_interfaces_ours.begin(), stop_interfaces_ours.end(), is_velocity_interface) == kNumberOfJoints){
     velocity_joint_interface_claimed_ = false;
-  }else if(stop_interfaces.size() != 0){
+  }else if(stop_interfaces_ours.size() != 0){
     std::string error_string = "Invalid number of effort interfaces to stop. Expected ";
     error_string += std::to_string(kNumberOfJoints);
     RCLCPP_FATAL(this->getLogger(), error_string.c_str());
     throw std::invalid_argument(error_string);
   }
   
-  if (std::count_if(start_interfaces.begin(), start_interfaces.end(), is_effort_interface) == kNumberOfJoints) {
+  if (std::count_if(start_interfaces_ours.begin(), start_interfaces_ours.end(), is_effort_interface) == kNumberOfJoints) {
     effort_interface_claimed_ = true;
     velocity_joint_interface_claimed_ = false;
-  } else if (std::count_if(start_interfaces.begin(), start_interfaces.end(), is_velocity_interface) == kNumberOfJoints) {
+  } else if (std::count_if(start_interfaces_ours.begin(), start_interfaces_ours.end(), is_velocity_interface) == kNumberOfJoints) {
     velocity_joint_interface_claimed_ = true;
     effort_interface_claimed_ = false;
-  }else if(start_interfaces.size() != 0){
+  }else if(start_interfaces_ours.size() != 0){
     std::string error_string = "Invalid number of effort interfaces to start. Expected ";
     error_string += std::to_string(kNumberOfJoints);
     RCLCPP_FATAL(this->getLogger(), error_string.c_str());
